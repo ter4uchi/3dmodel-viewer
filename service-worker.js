@@ -14,7 +14,7 @@
 importScripts("https://storage.googleapis.com/workbox-cdn/releases/4.3.1/workbox-sw.js");
 
 importScripts(
-  "/weather-app/precache-manifest.37df3843284a51dfe22247a3bc09d7f8.js"
+  "precache-manifest.325f7e2758666223c721373997c551fb.js"
 );
 
 workbox.core.setCacheNameDetails({prefix: "3dmodel-viewer"});
