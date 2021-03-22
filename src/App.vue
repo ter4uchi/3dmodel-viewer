@@ -1,6 +1,6 @@
 <template>
   <div id="app">
-    <canvas id="MV" ref="MV" width="600" height="800"></canvas>
+    <canvas id="MV" ref="MV"></canvas>
   </div>
 </template>
 
@@ -18,7 +18,7 @@ let defaultLight;
 export default{
   name:"App",
   data(){
-    return{
+    return {
       scene:null,
       render:null,
       camera:null,
@@ -29,7 +29,6 @@ export default{
     }
   },
   mounted(){
-
     defaultScene = ThreeScenes.scene;
     defaultCamera = ThreeScenes.camera;
     defaultLight = ThreeScenes.light;
@@ -55,9 +54,28 @@ export default{
   },
   methods:{
     animate() {
+      setTimeout(null,10);
+
+      if (this.resizeRendererToDisplaySize(this.render)) {
+        const canvas = this.render.domElement;
+        this.camera.aspect = canvas.clientWidth / canvas.clientHeight;
+        this.camera.updateProjectionMatrix();
+      }
+
       requestAnimationFrame(this.animate);
       this.control.update();
       this.render.render(defaultScene, defaultCamera);
+    },
+    /////////
+    resizeRendererToDisplaySize(renderer) {
+      const canvas = renderer.domElement;
+      const width = canvas.clientWidth;
+      const height = canvas.clientHeight;
+      const needResize = canvas.width !== width || canvas.height !== height;
+      if (needResize) {
+        this.render.setSize(width, height, false);
+      }
+      return needResize;
     },
     loadModel(){
       const url = Setting.default.model.model.url;
@@ -85,6 +103,7 @@ export default{
       //モデルのロード完了時に追加する。
       defaultScene.add(defaultModel);
       this.model =  defaultModel;
+      console.log('model insert')
     }
   }
 }
@@ -97,5 +116,11 @@ export default{
   -moz-osx-font-smoothing: grayscale;
   text-align: center;
   color: #2c3e50;
+  height: 100vh;
+  width: 100vw;
+}
+#MV{
+  height: 100%;
+  width: 100%;
 }
 </style>

@@ -8,10 +8,10 @@ export default{
         camera:{
             PerspectiveCamera:{
                 fov:70,
-                aspectX:600,
-                aspectY:800,
+                aspectX:document.body.clientWidth,
+                aspectY:document.body.clientHeight,
                 near:1,
-                far:1000
+                far:500
             },
             position:{
                 x:0,

@@ -15,7 +15,7 @@ const render = null;
 //カメラ
 const camera = new THREE.PerspectiveCamera(
     Setting.model.camera.PerspectiveCamera.fov,
-    Setting.model.camera.PerspectiveCamera.aspectX / Setting.model.camera.PerspectiveCamera.aspectY,
+    Setting.model.camera.PerspectiveCamera.aspectX / Setting.model.camera.PerspectiveCamera.aspectY,//1.33,//
     Setting.model.camera.PerspectiveCamera.near, 
     Setting.model.camera.PerspectiveCamera.far
 );
