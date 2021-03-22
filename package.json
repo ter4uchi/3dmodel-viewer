@@ -11,6 +11,7 @@
   "dependencies": {
     "@types/three": "^0.126.1",
     "core-js": "^3.6.5",
+    "gh-pages": "^3.1.0",
     "register-service-worker": "^1.7.1",
     "three": "^0.126.1",
     "vue": "^3.0.0",
@@ -28,7 +29,6 @@
     "@vue/eslint-config-typescript": "^7.0.0",
     "eslint": "^6.7.2",
     "eslint-plugin-vue": "^7.0.0",
-    "gh-pages": "^3.1.0",
     "typescript": "~4.1.5"
   },
   "eslintConfig": {
