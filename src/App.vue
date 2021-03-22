@@ -1,6 +1,11 @@
 <template>
   <div id="app">
     <canvas id="MV" ref="MV"></canvas>
+    <!--<controller id="Contoroller"/>-->
+    <div>
+      <button value="ミライアカリ" @click="loadModel('model/MiraiAkari/MiraiAkari_v1.0.pmx')">ミライアカリ</button>
+      <button value="ときのそら" @click="loadModel('model/TokinoSora/ときのそら.pmx')">ときのそら</button>
+    </div>
   </div>
 </template>
 
@@ -9,14 +14,19 @@ import * as THREE from "three";
 import { OrbitControls} from 'three/examples/jsm/controls/OrbitControls.js'
 import * as ThreeScenes from "./three/scenes";
 import * as Setting from "./three/Setting";
+import Controller from "./components/Controller"
 
-let defaultModel;
+//なんかここで宣言しないとうまくいかない
+var defaultModel;
 let defaultScene;
 let defaultCamera;
 let defaultLight;
 
 export default{
   name:"App",
+  components:{
+    //Controller
+  },
   data(){
     return {
       scene:null,
@@ -49,13 +59,12 @@ export default{
     this.control.dampingFactor = 0.2;
 
     this.render.render(defaultScene, defaultCamera);
-    this.loadModel();
+    this.loadModel(Setting.default.model.model.MiraiAkari);
     this.animate();
   },
   methods:{
     animate() {
-      setTimeout(null,10);
-
+      //ウィンドウリサイズ時の制御
       if (this.resizeRendererToDisplaySize(this.render)) {
         const canvas = this.render.domElement;
         this.camera.aspect = canvas.clientWidth / canvas.clientHeight;
@@ -66,7 +75,8 @@ export default{
       this.control.update();
       this.render.render(defaultScene, defaultCamera);
     },
-    /////////
+    //ウィンドウリサイズ時の制御
+    //ここ適当になってるから作り直す
     resizeRendererToDisplaySize(renderer) {
       const canvas = renderer.domElement;
       const width = canvas.clientWidth;
@@ -77,13 +87,17 @@ export default{
       }
       return needResize;
     },
-    loadModel(){
-      const url = Setting.default.model.model.url;
+    setLightColor(lightColor){
+      this.scene.remove
+      this.light=new THREE.DirectionalLight(lightColor,1.0);
+    },
+    loadModel(modelURL){
       var self = this;//eslint-disable-line
       this.loader.load(
-        url,
+        modelURL,
         function(obj){
           defaultModel = obj;
+          defaultModel.name ="nowModel";
           console.log('model loaded');
           self.model = defaultModel;
         },
@@ -101,9 +115,13 @@ export default{
   watch:{
     model:function(){
       //モデルのロード完了時に追加する。
+      let deleteModel = defaultScene.getObjectByName("nowModel");
+      defaultScene.remove(deleteModel);
+      console.log(defaultScene);
       defaultScene.add(defaultModel);
       this.model =  defaultModel;
-      console.log('model insert')
+      this.render.render(defaultScene, defaultCamera);
+      console.log(this.model);
     }
   }
 }
@@ -118,9 +136,18 @@ export default{
   color: #2c3e50;
   height: 100vh;
   width: 100vw;
+  display: flex;
 }
 #MV{
+  position: relative;
+  left: 0;
   height: 100%;
-  width: 100%;
+  width: 80%;
+}
+#Controller{
+  width: 20%;
+  position: fixed;
+  right: 0;
+  top: 0;
 }
 </style>

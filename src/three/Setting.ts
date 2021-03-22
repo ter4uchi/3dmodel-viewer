@@ -3,7 +3,8 @@ import * as THREE from "three";
 export default{
     model:{
         model:{
-            url:"model/MiraiAkari_v1.0.pmx"
+            MiraiAkari:"model/MiraiAkari/MiraiAkari_v1.0.pmx",
+            TokinoSora:"model/TokinoSora/ときのそら.pmx"
         },
         camera:{
             PerspectiveCamera:{
