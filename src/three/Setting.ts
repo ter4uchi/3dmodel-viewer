@@ -23,13 +23,13 @@ export default{
         },
         light:{
             DirectionLight:{
-                color:"0xFFFFFF",
+                color:"0xFF0000",
                 intensity:1.0
             },
             position:{
-                x:50,
+                x:20,
                 y:0,
-                z:200
+                z:20
             }
         }
     }

@@ -1,5 +1,18 @@
 # 3dmodel-viewer
 
+- Three.jsの機能確認用
+- 確認済
++ モデルの追加
++ モデルの削除
++ OrbitControll(マウスでカメラ位置の変更するやつ)
+
+- 未確認
++ ライトの色変更
++ 背景の追加
++ モーションファイルのロード
++ モーションファイルの実行
+
+
 ## Project setup
 ```
 npm install

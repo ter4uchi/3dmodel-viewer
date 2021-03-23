@@ -3,6 +3,7 @@
     <canvas id="MV" ref="MV"></canvas>
     <!--<controller id="Contoroller"/>-->
     <div>
+      <controller/>
       <button value="ミライアカリ" @click="loadModel('model/MiraiAkari/MiraiAkari_v1.0.pmx')">ミライアカリ</button>
       <button value="ときのそら" @click="loadModel('model/TokinoSora/ときのそら.pmx')">ときのそら</button>
     </div>
@@ -15,6 +16,7 @@ import { OrbitControls} from 'three/examples/jsm/controls/OrbitControls.js'
 import * as ThreeScenes from "./three/scenes";
 import * as Setting from "./three/Setting";
 import Controller from "./components/Controller"
+//import Controller from './components/Controller.vue';
 
 //なんかここで宣言しないとうまくいかない
 var defaultModel;
@@ -25,7 +27,7 @@ let defaultLight;
 export default{
   name:"App",
   components:{
-    //Controller
+    Controller
   },
   data(){
     return {
@@ -122,6 +124,9 @@ export default{
       this.model =  defaultModel;
       this.render.render(defaultScene, defaultCamera);
       console.log(this.model);
+    },
+    light:function(){
+      
     }
   }
 }
