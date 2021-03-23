@@ -5,13 +5,13 @@
 https://ter4uchi.github.io/3dmodel-viewer/
 
 ### Three.jsの機能確認
-- [x]モデルの追加
-- [x]モデルの削除
-- [x]OrbitControll
-- [ ]ライトの色変更
-- [ ]背景の追加
-- [ ]モーションファイルのロード
-- [ ]モーションファイルの実行
+- [x] モデルの追加
+- [x] モデルの削除
+- [x] OrbitControll
+- [ ] ライトの色変更
+- [ ] 背景の追加
+- [ ] モーションファイルのロード
+- [ ] モーションファイルの実行
 
 
 ## Project setup
