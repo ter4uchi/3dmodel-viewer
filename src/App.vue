@@ -3,7 +3,7 @@
     <canvas id="MV" ref="MV"></canvas>
     <!--<controller id="Contoroller"/>-->
     <div>
-      <controller/>
+      <!-- <controller/> -->
       <button value="ミライアカリ" @click="loadModel('model/MiraiAkari/MiraiAkari_v1.0.pmx')">ミライアカリ</button>
       <button value="ときのそら" @click="loadModel('model/TokinoSora/ときのそら.pmx')">ときのそら</button>
     </div>
@@ -27,7 +27,7 @@ let defaultLight;
 export default{
   name:"App",
   components:{
-    Controller
+    //Controller
   },
   data(){
     return {

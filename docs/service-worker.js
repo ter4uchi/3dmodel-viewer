@@ -14,7 +14,7 @@
 importScripts("https://storage.googleapis.com/workbox-cdn/releases/4.3.1/workbox-sw.js");
 
 importScripts(
-  "precache-manifest.1c1d85114c58a19bc23aeeb66d869652.js"
+  "precache-manifest.b1ce0a669d7a39de3ea8c6e8d5e53104.js"
 );
 
 workbox.core.setCacheNameDetails({prefix: "3dmodel-viewer"});
