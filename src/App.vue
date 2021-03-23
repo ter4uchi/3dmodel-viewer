@@ -126,7 +126,7 @@ export default{
       console.log(this.model);
     },
     light:function(){
-      
+      defaultScene.add(this.camera);
     }
   }
 }
