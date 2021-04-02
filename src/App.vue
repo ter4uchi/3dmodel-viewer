@@ -1,5 +1,6 @@
 <template>
   <div id="app">
+    <loading-overlay v-if="isloading"/>
     <canvas id="MV" ref="MV"></canvas>
     <!--<controller id="Contoroller"/>-->
     <div>
@@ -15,8 +16,8 @@ import * as THREE from "three";
 import { OrbitControls} from 'three/examples/jsm/controls/OrbitControls.js'
 import * as ThreeScenes from "./three/scenes";
 import * as Setting from "./three/Setting";
-import Controller from "./components/Controller"
-//import Controller from './components/Controller.vue';
+import LoadingOverlay from './components/parts/LoadingOverlay';
+import { loader } from '../../sota-simulation/src/three/scenes';
 
 //なんかここで宣言しないとうまくいかない
 var defaultModel;
@@ -27,7 +28,7 @@ let defaultLight;
 export default{
   name:"App",
   components:{
-    //Controller
+    LoadingOverlay
   },
   data(){
     return {
@@ -38,6 +39,7 @@ export default{
       model:null,
       Control:null,
       loader:ThreeScenes.MMDloader,
+      isloading: false
     }
   },
   mounted(){
@@ -59,7 +61,6 @@ export default{
     // 滑らかにカメラコントローラーを制御する
     this.control.enableDamping = true;
     this.control.dampingFactor = 0.2;
-
     this.render.render(defaultScene, defaultCamera);
     this.loadModel(Setting.default.model.model.MiraiAkari);
     this.animate();
@@ -90,10 +91,13 @@ export default{
       return needResize;
     },
     setLightColor(lightColor){
-      this.scene.remove
+      this.scene.remove;
       this.light=new THREE.DirectionalLight(lightColor,1.0);
     },
     loadModel(modelURL){
+      this.isloading=true;
+      const vmdFiles = ['./danceMotion/RucaRucaNightFever'];
+      const helper = new THREE.MMDHelper(this.render)
       var self = this;//eslint-disable-line
       this.loader.load(
         modelURL,
@@ -102,6 +106,24 @@ export default{
           defaultModel.name ="nowModel";
           console.log('model loaded');
           self.model = defaultModel;
+          /*
+          this.loader.loadVmds(
+            vmdFiles,
+            function(vmd) {
+              helper.add(defaultModel);
+              loader.pourVmdIntoModel(defaultModel,vmd);
+              helper.setAnimation(defaultModel);
+              helper.setPhysics(defaultModel);
+            },
+            function(xhr){
+              console.log(Math.round( xhr.loaded / xhr.total * 100 ) + '% loaded' );
+            },
+            function ( error ) {
+                console.group( 'error! reason:' );
+                console.log(error);
+                console.groupEnd();
+            }
+          )*/
         },
         function(xhr){
           console.log(Math.round( xhr.loaded / xhr.total * 100 ) + '% loaded' );
@@ -119,11 +141,9 @@ export default{
       //モデルのロード完了時に追加する。
       let deleteModel = defaultScene.getObjectByName("nowModel");
       defaultScene.remove(deleteModel);
-      console.log(defaultScene);
       defaultScene.add(defaultModel);
       this.model =  defaultModel;
-      this.render.render(defaultScene, defaultCamera);
-      console.log(this.model);
+      this.isloading=false;
     },
     light:function(){
       defaultScene.add(this.camera);
