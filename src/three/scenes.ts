@@ -6,6 +6,7 @@ import { Reflector } from "three/examples/jsm/objects/Reflector.js";
 import Setting from './Setting'
 
 ////初期設定
+THREE.Cache.enabled = true;
 
 //シーン
 const scene = new THREE.Scene();
