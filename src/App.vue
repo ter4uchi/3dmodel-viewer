@@ -1,22 +1,34 @@
 <template>
-  <div
-    id="app"
-    @dragenter.prevent="handleDragEnter"
-    @dragover.prevent="handleDragOver"
-    @dragleave.prevent="handleDragLeave"
-    @drop.prevent="handleDrop"
-  >
+  <div id="app" @dragenter.prevent="handleDragEnter" @dragover.prevent="handleDragOver"
+    @dragleave.prevent="handleDragLeave" @drop.prevent="handleDrop">
     <loading-overlay v-if="isloading" />
     <div class="layout">
       <canvas id="MV" ref="MV"></canvas>
+      <button v-if="isMobileViewport" class="mobile-controller-toggle" :class="{ active: isMobileControllerOpen }"
+        @click.stop="toggleMobileController">
+        {{ isMobileControllerOpen ? 'コントローラーを隠す' : 'コントローラーを表示' }}
+      </button>
 
-      <aside class="sidebar">
+      <aside class="sidebar" :class="{ 'mobile-collapsed': !isMobileControllerOpen }">
         <div class="sidebar-panel">
           <p class="sidebar-eyebrow">MMD Controller</p>
           <h1 class="sidebar-title">3D Model Viewer</h1>
           <p class="status-badge" :class="{ loading: isloading, paused: !isPlaying }">
             {{ isloading ? 'Loading...' : (isPlaying ? 'Playing' : 'Paused') }}
           </p>
+          <section class="control-section">
+            <h2 class="section-title">表情</h2>
+            <div v-if="morphItems.length > 0" class="morph-list">
+              <label v-for="morph in morphItems" :key="`morph-${morph.index}`" class="morph-item">
+                <span class="morph-name">{{ morph.name }}</span>
+                <input :value="morph.value" type="range" min="0" max="1" step="0.01"
+                  @input="onMorphInput(morph, $event)">
+                <span class="morph-value">{{ morph.value.toFixed(2) }}</span>
+              </label>
+            </div>
+            <p v-else class="section-note">モーフが見つかりません。</p>
+          </section>
+
 
           <section class="control-section">
             <h2 class="section-title">Model</h2>
@@ -28,7 +40,15 @@
                 ときのそら
               </button>
             </div>
+            <label class="path-input">
+              <span>Model URL</span>
+              <input v-model.trim="modelPathInput" type="text" placeholder="model/example.pmx or https://.../example.pmx">
+            </label>
+            <button class="side-button" @click="loadModelFromPath" :disabled="!modelPathInput">
+              モデル読込
+            </button>
             <p class="section-note">Current: {{ fileLabel(currentModelUrl) }}</p>
+            <p v-if="modelLoadError" class="section-note">{{ modelLoadError }}</p>
           </section>
 
           <section class="control-section">
@@ -54,22 +74,16 @@
 
             <label class="light-input light-range">
               <span>{{ formatTime(currentTime) }} / {{ formatTime(motionDuration) }}</span>
-              <input
-                :value="currentTime"
-                type="range"
-                min="0"
-                :max="Math.max(motionDuration, 0.01)"
-                step="0.01"
-                :disabled="!hasLoadedModel || motionDuration <= 0"
-                @input="onSeekInput"
-              >
+              <input :value="currentTime" type="range" min="0" :max="Math.max(motionDuration, 0.01)" step="0.01"
+                :disabled="!hasLoadedModel || motionDuration <= 0" @input="onSeekInput">
             </label>
 
             <label class="path-input">
               <span>Model VMD URL</span>
               <input v-model.trim="modelMotionPathInput" type="text" placeholder="danceMotion/example.vmd">
             </label>
-            <button class="side-button" @click="loadMotionFromPath" :disabled="!modelMotionPathInput || !hasLoadedModel">
+            <button class="side-button" @click="loadMotionFromPath"
+              :disabled="!modelMotionPathInput || !hasLoadedModel">
               モーション読込
             </button>
           </section>
@@ -103,18 +117,6 @@
                 <input v-model.number="ambientIntensity" type="range" min="0" max="1.4" step="0.01">
               </label>
             </div>
-          </section>
-
-          <section class="control-section">
-            <h2 class="section-title">Morph</h2>
-            <div v-if="morphItems.length > 0" class="morph-list">
-              <label v-for="morph in morphItems" :key="`morph-${morph.index}`" class="morph-item">
-                <span class="morph-name">{{ morph.name }}</span>
-                <input :value="morph.value" type="range" min="0" max="1" step="0.01" @input="onMorphInput(morph, $event)">
-                <span class="morph-value">{{ morph.value.toFixed(2) }}</span>
-              </label>
-            </div>
-            <p v-else class="section-note">モーフが見つかりません。</p>
           </section>
 
           <section class="control-section">
@@ -176,6 +178,8 @@ const isPlaying = ref(true)
 const hasLoadedModel = ref(false)
 const isCameraMotionActive = ref(false)
 const isDragOver = ref(false)
+const isMobileControllerOpen = ref(true)
+const isMobileViewport = ref(false)
 
 const ambientColor = ref('#ffffff')
 const ambientIntensity = ref(Setting.model.light.AmbientLight.intensity)
@@ -188,9 +192,11 @@ const dropVmdTarget = ref('model')
 const currentModelUrl = ref(Setting.model.model.MiraiAkari)
 const currentMotionUrl = ref(Setting.model.motion.RucaRucaNightFever)
 const cameraMotionUrl = ref('')
+const modelPathInput = ref('')
 const modelMotionPathInput = ref('')
 const cameraMotionPathInput = ref('')
 const morphItems = ref([])
+const modelLoadError = ref('')
 
 const currentMotionClip = ref(null)
 const currentCameraClip = ref(null)
@@ -202,6 +208,10 @@ const clock = new THREE.Clock()
 const storageKey = Setting.model.storage?.key || 'mmd-viewer-settings-v1'
 
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value))
+
+const syncViewportState = () => {
+  isMobileViewport.value = window.innerWidth <= 980
+}
 
 const isPersistableUrl = (url) => typeof url === 'string' && url.length > 0 && !url.startsWith('blob:')
 
@@ -234,6 +244,22 @@ const registerTemporaryUrl = (file) => {
   return url
 }
 
+const resolveUrl = (input) => {
+  if (!input) {
+    return ''
+  }
+
+  if (input.startsWith('blob:')) {
+    return input
+  }
+
+  try {
+    return new URL(input, window.location.href).href
+  } catch {
+    return ''
+  }
+}
+
 const saveAppSettings = () => {
   try {
     const payload = {
@@ -242,6 +268,7 @@ const saveAppSettings = () => {
       playbackSpeed: playbackSpeed.value,
       loopEnabled: loopEnabled.value,
       dropVmdTarget: dropVmdTarget.value,
+      mobileControllerOpen: isMobileControllerOpen.value,
       modelUrl: isPersistableUrl(currentModelUrl.value) ? currentModelUrl.value : Setting.model.model.MiraiAkari,
       motionUrl: isPersistableUrl(currentMotionUrl.value) ? currentMotionUrl.value : Setting.model.motion.RucaRucaNightFever,
       cameraMotionUrl: isPersistableUrl(cameraMotionUrl.value) ? cameraMotionUrl.value : ''
@@ -284,8 +311,13 @@ const restoreAppSettings = () => {
       dropVmdTarget.value = saved.dropVmdTarget
     }
 
+    if (typeof saved.mobileControllerOpen === 'boolean') {
+      isMobileControllerOpen.value = saved.mobileControllerOpen
+    }
+
     if (isPersistableUrl(saved.modelUrl)) {
       currentModelUrl.value = saved.modelUrl
+      modelPathInput.value = saved.modelUrl
     }
 
     if (isPersistableUrl(saved.motionUrl)) {
@@ -621,14 +653,28 @@ const loadMotionFromPath = () => {
   loadMotionForCurrentModel(modelMotionPathInput.value)
 }
 
-const loadModel = (modelURL, motionURL, onLoaded) => {
-  const effectiveModelUrl = modelURL || currentModelUrl.value
-  const effectiveMotionUrl = motionURL || currentMotionUrl.value || Setting.model.motion.RucaRucaNightFever
+const loadModelFromPath = () => {
+  const resolvedModelUrl = resolveUrl(modelPathInput.value)
 
-  if (!effectiveModelUrl || !effectiveMotionUrl) {
+  if (!resolvedModelUrl) {
+    modelLoadError.value = 'Model URL が不正です。'
     return
   }
 
+  modelLoadError.value = ''
+  loadModel(resolvedModelUrl, currentMotionUrl.value)
+}
+
+const loadModel = (modelURL, motionURL, onLoaded) => {
+  const effectiveModelUrl = resolveUrl(modelURL || currentModelUrl.value)
+  const effectiveMotionUrl = motionURL || currentMotionUrl.value || Setting.model.motion.RucaRucaNightFever
+
+  if (!effectiveModelUrl || !effectiveMotionUrl) {
+    modelLoadError.value = 'Model URL を解決できませんでした。'
+    return
+  }
+
+  modelLoadError.value = ''
   isloading.value = true
 
   loader.loadWithAnimation(
@@ -647,6 +693,7 @@ const loadModel = (modelURL, motionURL, onLoaded) => {
       defaultScene.add(defaultModel)
 
       currentModelUrl.value = effectiveModelUrl
+      modelPathInput.value = effectiveModelUrl
       currentMotionUrl.value = effectiveMotionUrl
       modelMotionPathInput.value = effectiveMotionUrl
 
@@ -666,7 +713,8 @@ const loadModel = (modelURL, motionURL, onLoaded) => {
       console.group('model load error')
       console.log(error)
       console.groupEnd()
-      hasLoadedModel.value = false
+      hasLoadedModel.value = Boolean(defaultModel)
+      modelLoadError.value = 'モデル読込に失敗しました（URL/CORS/形式をご確認ください）。'
       isloading.value = false
     }
   )
@@ -682,6 +730,10 @@ const toggleAnimation = () => {
   }
 
   isPlaying.value = !isPlaying.value
+}
+
+const toggleMobileController = () => {
+  isMobileControllerOpen.value = !isMobileControllerOpen.value
 }
 
 const handleDragEnter = () => {
@@ -791,8 +843,10 @@ const resetPersistedSettings = () => {
   currentMotionUrl.value = Setting.model.motion.RucaRucaNightFever
   cameraMotionUrl.value = ''
 
+  modelPathInput.value = currentModelUrl.value
   modelMotionPathInput.value = currentMotionUrl.value
   cameraMotionPathInput.value = ''
+  modelLoadError.value = ''
 
   applyAmbientLight()
   applyLoopMode()
@@ -856,7 +910,8 @@ watch(
     currentModelUrl,
     currentMotionUrl,
     cameraMotionUrl,
-    dropVmdTarget
+    dropVmdTarget,
+    isMobileControllerOpen
   ],
   () => {
     saveAppSettings()
@@ -864,7 +919,13 @@ watch(
 )
 
 onMounted(() => {
+  syncViewportState()
+  window.addEventListener('resize', syncViewportState, { passive: true })
   restoreAppSettings()
+
+  if (!modelPathInput.value) {
+    modelPathInput.value = currentModelUrl.value
+  }
 
   defaultScene = ThreeScenes.scene
   defaultCamera = ThreeScenes.camera
@@ -913,6 +974,7 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
+  window.removeEventListener('resize', syncViewportState)
   for (const url of temporaryUrls) {
     URL.revokeObjectURL(url)
   }
@@ -920,6 +982,12 @@ onBeforeUnmount(() => {
 </script>
 
 <style>
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
 #app {
   --page-bg-start: #d7e5df;
   --page-bg-mid: #f2e8d9;
@@ -937,7 +1005,7 @@ onBeforeUnmount(() => {
   font-family: "M PLUS 1", "Yu Gothic UI", "Hiragino Kaku Gothic ProN", "Meiryo", sans-serif;
   color: var(--text-main);
   height: 100vh;
-  width: 100vw;
+  width: 100%;
   overflow: hidden;
   background:
     radial-gradient(circle at 18% 8%, rgba(255, 255, 255, 0.75) 0%, rgba(255, 255, 255, 0) 44%),
@@ -948,6 +1016,7 @@ onBeforeUnmount(() => {
   width: 100%;
   height: 100%;
   display: flex;
+  min-width: 0;
 }
 
 #MV {
@@ -958,8 +1027,34 @@ onBeforeUnmount(() => {
   animation: canvas-fade-in 0.6s ease-out;
 }
 
+.mobile-controller-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: fixed;
+  right: 12px;
+  bottom: calc(12px + env(safe-area-inset-bottom));
+  min-height: 44px;
+  z-index: 220;
+  border: 1px solid var(--button-border);
+  border-radius: 999px;
+  background: var(--button-primary);
+  color: #f5fbff;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+  padding: 11px 14px;
+  box-shadow: 0 10px 24px rgba(20, 28, 41, 0.2);
+}
+
+.mobile-controller-toggle.active {
+  background: #2a6f8f;
+}
+
 .sidebar {
   width: 360px;
+  flex: 0 0 360px;
+  max-width: 100%;
   padding: 20px 18px;
   border-left: 1px solid var(--panel-border);
   background: linear-gradient(160deg, var(--panel-bg), rgba(228, 237, 245, 0.7));
@@ -1213,29 +1308,116 @@ onBeforeUnmount(() => {
 @media (max-width: 980px) {
   #app {
     height: auto;
-    min-height: 100vh;
+    min-height: 100dvh;
     overflow: auto;
+    overflow-x: hidden;
+    overscroll-behavior-y: contain;
   }
 
   .layout {
     flex-direction: column;
-    min-height: 100vh;
+    min-height: 100dvh;
   }
 
   #MV {
     width: 100%;
-    height: 62vh;
+    height: 54dvh;
   }
 
   .sidebar {
     width: 100%;
+    flex: 0 0 auto;
+    padding: 14px 12px calc(20px + env(safe-area-inset-bottom));
     border-left: none;
     border-top: 1px solid var(--panel-border);
     box-shadow: 0 -8px 24px rgba(20, 28, 41, 0.08);
+    overflow: hidden;
+    max-height: 2000px;
+    transition: max-height 220ms ease, padding 220ms ease, opacity 220ms ease;
+  }
+
+  .sidebar.mobile-collapsed {
+    max-height: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    border-top: 0;
+    box-shadow: none;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .sidebar-panel {
+    height: auto;
+    overflow: visible;
+    padding-right: 0;
+    gap: 12px;
+  }
+
+  .control-section {
+    padding: 12px;
+    gap: 12px;
+  }
+
+  .side-button {
+    min-height: 44px;
+    font-size: 14px;
+  }
+
+  .light-input,
+  .toggle-inline {
+    min-height: 44px;
+    font-size: 14px;
+  }
+
+  .path-input input {
+    min-height: 44px;
+    font-size: 16px;
+  }
+
+  .drop-zone {
+    padding: 16px 12px;
+    font-size: 13px;
+  }
+
+  .morph-list {
+    max-height: 220px;
   }
 
   .button-grid.two-col {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .sidebar {
+    padding: 12px 10px calc(18px + env(safe-area-inset-bottom));
+  }
+
+  .sidebar-eyebrow {
+    font-size: 11px;
+  }
+
+  .sidebar-title {
+    font-size: 23px;
+  }
+
+  .status-badge {
+    font-size: 12px;
+    padding: 5px 10px;
+  }
+
+  #MV {
+    height: 50dvh;
+  }
+
+  .morph-item {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+
+  .morph-value {
+    width: auto;
+    text-align: left;
   }
 }
 
@@ -1244,6 +1426,7 @@ onBeforeUnmount(() => {
     opacity: 0;
     transform: translateX(14px);
   }
+
   to {
     opacity: 1;
     transform: translateX(0);
@@ -1254,6 +1437,7 @@ onBeforeUnmount(() => {
   from {
     opacity: 0;
   }
+
   to {
     opacity: 1;
   }
