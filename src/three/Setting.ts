@@ -26,14 +26,30 @@ export default{
         },
         light:{
             DirectionLight:{
-                color:"0xFF0000",
-                intensity:1.0
+                intensity:1.2
+            },
+            AmbientLight:{
+                color:0xffffff,
+                intensity:0.72
             },
             position:{
                 x:20,
-                y:0,
+                y:30,
                 z:20
             }
+        },
+        floor:{
+            size:300,
+            color:0xffffff,
+            y:-0.01,
+            reflectionColor:0xe8f8ee,
+            shadowOpacity:0.28
+        },
+        space:{
+            backgroundColor:0xf0faf0
+        },
+        storage:{
+            key:'mmd-viewer-settings-v1'
         }
     }
 }
