@@ -3,8 +3,21 @@
     @dragleave.prevent="handleDragLeave" @drop.prevent="handleDrop">
     <loading-overlay v-if="isloading" />
     <div class="layout">
+      <div class="canvas-guide" aria-live="polite">
+        <p class="canvas-guide-title">操作ガイド</p>
+        <ul v-if="isMobileViewport" class="canvas-guide-list">
+          <li>1本指ドラッグ: 回転</li>
+          <li>2本指ドラッグ: 平行移動</li>
+          <li>ピンチ: ズーム</li>
+        </ul>
+        <ul v-else class="canvas-guide-list">
+          <li>左ドラッグ: 回転</li>
+          <li>右ドラッグ: 平行移動</li>
+          <li>ホイール: ズーム</li>
+        </ul>
+      </div>
       <canvas id="MV" ref="MV"></canvas>
-      <button v-if="isMobileViewport" class="mobile-controller-toggle" :class="{ active: isMobileControllerOpen }"
+      <button class="controller-toggle" :class="{ active: isMobileControllerOpen }"
         @click.stop="toggleMobileController">
         {{ isMobileControllerOpen ? 'コントローラーを隠す' : 'コントローラーを表示' }}
       </button>
@@ -16,41 +29,6 @@
           <p class="status-badge" :class="{ loading: isloading, paused: !isPlaying }">
             {{ isloading ? 'Loading...' : (isPlaying ? 'Playing' : 'Paused') }}
           </p>
-          <section class="control-section">
-            <h2 class="section-title">表情</h2>
-            <div v-if="morphItems.length > 0" class="morph-list">
-              <label v-for="morph in morphItems" :key="`morph-${morph.index}`" class="morph-item">
-                <span class="morph-name">{{ morph.name }}</span>
-                <input :value="morph.value" type="range" min="0" max="1" step="0.01"
-                  @input="onMorphInput(morph, $event)">
-                <span class="morph-value">{{ morph.value.toFixed(2) }}</span>
-              </label>
-            </div>
-            <p v-else class="section-note">モーフが見つかりません。</p>
-          </section>
-
-
-          <section class="control-section">
-            <h2 class="section-title">Model</h2>
-            <div class="button-grid two-col">
-              <button class="side-button" @click="loadModel(Setting.model.model.MiraiAkari, currentMotionUrl)">
-                ミライアカリ
-              </button>
-              <button class="side-button" @click="loadModel(Setting.model.model.TokinoSora, currentMotionUrl)">
-                ときのそら
-              </button>
-            </div>
-            <label class="path-input">
-              <span>Model URL</span>
-              <input v-model.trim="modelPathInput" type="text" placeholder="model/example.pmx or https://.../example.pmx">
-            </label>
-            <button class="side-button" @click="loadModelFromPath" :disabled="!modelPathInput">
-              モデル読込
-            </button>
-            <p class="section-note">Current: {{ fileLabel(currentModelUrl) }}</p>
-            <p v-if="modelLoadError" class="section-note">{{ modelLoadError }}</p>
-          </section>
-
           <section class="control-section">
             <h2 class="section-title">Motion</h2>
             <div class="button-grid two-col">
@@ -86,6 +64,41 @@
               :disabled="!modelMotionPathInput || !hasLoadedModel">
               モーション読込
             </button>
+          </section>
+          <section class="control-section">
+            <h2 class="section-title">表情</h2>
+            <div v-if="morphItems.length > 0" class="morph-list">
+              <label v-for="morph in morphItems" :key="`morph-${morph.index}`" class="morph-item">
+                <span class="morph-name">{{ morph.name }}</span>
+                <input :value="morph.value" type="range" min="0" max="1" step="0.01"
+                  @input="onMorphInput(morph, $event)">
+                <span class="morph-value">{{ morph.value.toFixed(2) }}</span>
+              </label>
+            </div>
+            <p v-else class="section-note">モーフが見つかりません。</p>
+          </section>
+
+
+          <section class="control-section">
+            <h2 class="section-title">Model</h2>
+            <div class="button-grid two-col">
+              <button class="side-button" @click="loadModel(Setting.model.model.MiraiAkari, currentMotionUrl)">
+                ミライアカリ
+              </button>
+              <button class="side-button" @click="loadModel(Setting.model.model.TokinoSora, currentMotionUrl)">
+                ときのそら
+              </button>
+            </div>
+            <label class="path-input">
+              <span>Model URL</span>
+              <input v-model.trim="modelPathInput" type="text"
+                placeholder="model/example.pmx or https://.../example.pmx">
+            </label>
+            <button class="side-button" @click="loadModelFromPath" :disabled="!modelPathInput">
+              モデル読込
+            </button>
+            <p class="section-note">Current: {{ fileLabel(currentModelUrl) }}</p>
+            <p v-if="modelLoadError" class="section-note">{{ modelLoadError }}</p>
           </section>
 
           <section class="control-section">
@@ -1005,6 +1018,8 @@ onBeforeUnmount(() => {
   font-family: "M PLUS 1", "Yu Gothic UI", "Hiragino Kaku Gothic ProN", "Meiryo", sans-serif;
   color: var(--text-main);
   height: 100vh;
+  height: 100dvh;
+  min-height: 100dvh;
   width: 100%;
   overflow: hidden;
   background:
@@ -1017,6 +1032,40 @@ onBeforeUnmount(() => {
   height: 100%;
   display: flex;
   min-width: 0;
+  position: relative;
+}
+
+.canvas-guide {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 120;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.58);
+  background: rgba(17, 39, 54, 0.62);
+  color: #f2f7fb;
+  backdrop-filter: blur(3px);
+  pointer-events: none;
+  max-width: min(320px, calc(100% - 24px));
+}
+
+.canvas-guide-title {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+.canvas-guide-list {
+  margin: 6px 0 0;
+  padding-left: 16px;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.canvas-guide-list li {
+  margin: 0;
 }
 
 #MV {
@@ -1027,7 +1076,7 @@ onBeforeUnmount(() => {
   animation: canvas-fade-in 0.6s ease-out;
 }
 
-.mobile-controller-toggle {
+.controller-toggle {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1047,13 +1096,15 @@ onBeforeUnmount(() => {
   box-shadow: 0 10px 24px rgba(20, 28, 41, 0.2);
 }
 
-.mobile-controller-toggle.active {
+.controller-toggle.active {
   background: #2a6f8f;
 }
 
 .sidebar {
   width: 360px;
   flex: 0 0 360px;
+  height: 65dvh;
+  max-height: 65dvh;
   max-width: 100%;
   padding: 20px 18px;
   border-left: 1px solid var(--panel-border);
@@ -1061,6 +1112,18 @@ onBeforeUnmount(() => {
   backdrop-filter: blur(8px);
   box-shadow: -16px 0 30px rgba(20, 28, 41, 0.08);
   animation: sidebar-slide-in 0.45s ease-out;
+}
+
+.sidebar.mobile-collapsed {
+  width: 0;
+  flex: 0 0 0;
+  padding-left: 0;
+  padding-right: 0;
+  border-left: 0;
+  box-shadow: none;
+  opacity: 0;
+  pointer-events: none;
+  overflow: hidden;
 }
 
 .sidebar-panel {
@@ -1307,10 +1370,9 @@ onBeforeUnmount(() => {
 
 @media (max-width: 980px) {
   #app {
-    height: auto;
+    height: 100dvh;
     min-height: 100dvh;
-    overflow: auto;
-    overflow-x: hidden;
+    overflow: hidden;
     overscroll-behavior-y: contain;
   }
 
@@ -1321,23 +1383,38 @@ onBeforeUnmount(() => {
 
   #MV {
     width: 100%;
-    height: 54dvh;
+    height: 35dvh;
+  }
+
+  .canvas-guide {
+    top: 10px;
+    left: 10px;
+    padding: 8px 10px;
+  }
+
+  .canvas-guide-title,
+  .canvas-guide-list {
+    font-size: 11px;
   }
 
   .sidebar {
     width: 100%;
     flex: 0 0 auto;
+    height: 65dvh;
+    max-height: 65dvh;
     padding: 14px 12px calc(20px + env(safe-area-inset-bottom));
     border-left: none;
     border-top: 1px solid var(--panel-border);
     box-shadow: 0 -8px 24px rgba(20, 28, 41, 0.08);
     overflow: hidden;
-    max-height: 2000px;
     transition: max-height 220ms ease, padding 220ms ease, opacity 220ms ease;
   }
 
   .sidebar.mobile-collapsed {
+    width: 100%;
+    flex: 0 0 auto;
     max-height: 0;
+    height: 0;
     padding-top: 0;
     padding-bottom: 0;
     border-top: 0;
@@ -1347,8 +1424,8 @@ onBeforeUnmount(() => {
   }
 
   .sidebar-panel {
-    height: auto;
-    overflow: visible;
+    height: 100%;
+    overflow-y: auto;
     padding-right: 0;
     gap: 12px;
   }
@@ -1407,7 +1484,11 @@ onBeforeUnmount(() => {
   }
 
   #MV {
-    height: 50dvh;
+    height: 35dvh;
+  }
+
+  .canvas-guide {
+    max-width: calc(100% - 20px);
   }
 
   .morph-item {
