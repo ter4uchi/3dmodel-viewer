@@ -29,6 +29,14 @@ npm run serve
 npm run build
 ```
 
+※ 本プロジェクトは `vue.config.js` で `outputDir: "docs/"` を指定しているため、
+ビルド成果物は `docs/` に出力されます（GitHub Pages 用）。
+
+### Deploy to GitHub Pages
+```
+npm run deploy
+```
+
 ### Lints and fixes files
 ```
 npm run lint

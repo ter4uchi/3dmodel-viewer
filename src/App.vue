@@ -1,6 +1,6 @@
 <template>
   <div id="app">
-    <loading-overlay v-if="isloading"/>
+    <loading-overlay v-if="isloading" />
     <canvas id="MV" ref="MV"></canvas>
     <!--<controller id="Contoroller"/>-->
     <div>
@@ -11,145 +11,137 @@
   </div>
 </template>
 
-<script>
+<script setup>
+import { onMounted, ref, watch } from 'vue'
 import * as THREE from "three";
-import { OrbitControls} from 'three/examples/jsm/controls/OrbitControls.js'
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import * as ThreeScenes from "./three/scenes";
-import * as Setting from "./three/Setting";
+import Setting from "./three/Setting";
 import LoadingOverlay from './components/parts/LoadingOverlay';
-import { loader } from '../../sota-simulation/src/three/scenes';
 
 //なんかここで宣言しないとうまくいかない
-var defaultModel;
+let defaultModel;
 let defaultScene;
 let defaultCamera;
 let defaultLight;
 
-export default{
-  name:"App",
-  components:{
-    LoadingOverlay
-  },
-  data(){
-    return {
-      scene:null,
-      render:null,
-      camera:null,
-      light:null,
-      model:null,
-      Control:null,
-      loader:ThreeScenes.MMDloader,
-      isloading: false
-    }
-  },
-  mounted(){
-    defaultScene = ThreeScenes.scene;
-    defaultCamera = ThreeScenes.camera;
-    defaultLight = ThreeScenes.light;
-    defaultScene.add(defaultLight);
-    this.scene = defaultScene;
-    this.camera= defaultCamera;
+const MV = ref(null)
+const scene = ref(null)
+const render = ref(null)
+const camera = ref(null)
+const light = ref(null)
+const model = ref(null)
+const control = ref(null)
+const isloading = ref(false)
+const loader = ThreeScenes.MMDloader
 
-    this.render = new THREE.WebGLRenderer({
-      antialias: true,
-      canvas: this.$refs.MV
-    });
-    this.render.setClearColor(0xEEEEEE);
-
-    this.control = new OrbitControls(defaultCamera,this.render.domElement);
-    this.control.target = Setting.default.model.camera.lookAt
-    // 滑らかにカメラコントローラーを制御する
-    this.control.enableDamping = true;
-    this.control.dampingFactor = 0.2;
-    this.render.render(defaultScene, defaultCamera);
-    this.loadModel(Setting.default.model.model.MiraiAkari);
-    this.animate();
-  },
-  methods:{
-    animate() {
-      //ウィンドウリサイズ時の制御
-      if (this.resizeRendererToDisplaySize(this.render)) {
-        const canvas = this.render.domElement;
-        this.camera.aspect = canvas.clientWidth / canvas.clientHeight;
-        this.camera.updateProjectionMatrix();
-      }
-
-      requestAnimationFrame(this.animate);
-      this.control.update();
-      this.render.render(defaultScene, defaultCamera);
-    },
-    //ウィンドウリサイズ時の制御
-    //ここ適当になってるから作り直す
-    resizeRendererToDisplaySize(renderer) {
-      const canvas = renderer.domElement;
-      const width = canvas.clientWidth;
-      const height = canvas.clientHeight;
-      const needResize = canvas.width !== width || canvas.height !== height;
-      if (needResize) {
-        this.render.setSize(width, height, false);
-      }
-      return needResize;
-    },
-    setLightColor(lightColor){
-      this.scene.remove;
-      this.light=new THREE.DirectionalLight(lightColor,1.0);
-    },
-    loadModel(modelURL){
-      this.isloading=true;
-      const vmdFiles = ['./danceMotion/RucaRucaNightFever'];
-      const helper = new THREE.MMDHelper(this.render)
-      var self = this;//eslint-disable-line
-      this.loader.load(
-        modelURL,
-        function(obj){
-          defaultModel = obj;
-          defaultModel.name ="nowModel";
-          console.log('model loaded');
-          self.model = defaultModel;
-          /*
-          this.loader.loadVmds(
-            vmdFiles,
-            function(vmd) {
-              helper.add(defaultModel);
-              loader.pourVmdIntoModel(defaultModel,vmd);
-              helper.setAnimation(defaultModel);
-              helper.setPhysics(defaultModel);
-            },
-            function(xhr){
-              console.log(Math.round( xhr.loaded / xhr.total * 100 ) + '% loaded' );
-            },
-            function ( error ) {
-                console.group( 'error! reason:' );
-                console.log(error);
-                console.groupEnd();
-            }
-          )*/
-        },
-        function(xhr){
-          console.log(Math.round( xhr.loaded / xhr.total * 100 ) + '% loaded' );
-        },
-        function ( error ) {
-            console.group( 'error! reason:' );
-            console.log(error);
-            console.groupEnd();
-        }
-      )
-    }
-  },
-  watch:{
-    model:function(){
-      //モデルのロード完了時に追加する。
-      let deleteModel = defaultScene.getObjectByName("nowModel");
-      defaultScene.remove(deleteModel);
-      defaultScene.add(defaultModel);
-      this.model =  defaultModel;
-      this.isloading=false;
-    },
-    light:function(){
-      defaultScene.add(this.camera);
-    }
+const animate = () => {
+  if (!render.value || !camera.value || !control.value) {
+    return
   }
+
+  if (resizeRendererToDisplaySize(render.value)) {
+    const canvas = render.value.domElement;
+    camera.value.aspect = canvas.clientWidth / canvas.clientHeight;
+    camera.value.updateProjectionMatrix();
+  }
+
+  requestAnimationFrame(animate);
+  control.value.update();
+  render.value.render(defaultScene, defaultCamera);
 }
+
+const resizeRendererToDisplaySize = (renderer) => {
+  const canvas = renderer.domElement;
+  const width = canvas.clientWidth;
+  const height = canvas.clientHeight;
+  const needResize = canvas.width !== width || canvas.height !== height;
+  if (needResize) {
+    renderer.setSize(width, height, false);
+  }
+  return needResize;
+}
+
+const setLightColor = (lightColor) => {
+  light.value = new THREE.DirectionalLight(lightColor, 1.0);
+}
+
+const loadModel = (modelURL) => {
+  isloading.value = true;
+  loader.load(
+    modelURL,
+    (obj) => {
+      defaultModel = obj;
+      defaultModel.name = "nowModel";
+      console.log('model loaded');
+      model.value = defaultModel;
+    },
+    (xhr) => {
+      console.log(Math.round(xhr.loaded / xhr.total * 100) + '% loaded');
+    },
+    (error) => {
+      console.group('error! reason:');
+      console.log(error);
+      console.groupEnd();
+    }
+  )
+}
+
+watch(model, () => {
+  if (!defaultScene || !defaultModel) {
+    return
+  }
+
+  const deleteModel = defaultScene.getObjectByName("nowModel");
+  if (deleteModel) {
+    defaultScene.remove(deleteModel);
+  }
+  defaultScene.add(defaultModel);
+  model.value = defaultModel;
+  isloading.value = false;
+})
+
+watch(light, (newLight) => {
+  if (!defaultScene || !newLight) {
+    return
+  }
+
+  defaultScene.remove(defaultLight);
+  defaultLight = newLight;
+  defaultScene.add(defaultLight);
+})
+
+onMounted(() => {
+  defaultScene = ThreeScenes.scene;
+  defaultCamera = ThreeScenes.camera;
+  defaultLight = ThreeScenes.light;
+  defaultScene.add(defaultLight);
+  scene.value = defaultScene;
+  camera.value = defaultCamera;
+
+  if (!MV.value) {
+    return
+  }
+
+  render.value = new THREE.WebGLRenderer({
+    antialias: true,
+    canvas: MV.value
+  });
+  render.value.setClearColor(0xEEEEEE);
+
+  control.value = new OrbitControls(defaultCamera, render.value.domElement);
+  control.value.target = Setting.model.camera.lookAt
+  control.value.enableDamping = true;
+  control.value.dampingFactor = 0.2;
+  render.value.render(defaultScene, defaultCamera);
+  loadModel(Setting.model.model.MiraiAkari);
+  animate();
+})
+
+defineExpose({
+  light,
+  setLightColor
+})
 </script>
 
 <style>
@@ -163,13 +155,15 @@ export default{
   width: 100vw;
   display: flex;
 }
-#MV{
+
+#MV {
   position: relative;
   left: 0;
   height: 100%;
   width: 80%;
 }
-#Controller{
+
+#Controller {
   width: 20%;
   position: fixed;
   right: 0;
