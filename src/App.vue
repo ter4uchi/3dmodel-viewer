@@ -5,8 +5,11 @@
     <!--<controller id="Contoroller"/>-->
     <div>
       <!-- <controller/> -->
-      <button value="ミライアカリ" @click="loadModel('model/MiraiAkari/MiraiAkari_v1.0.pmx')">ミライアカリ</button>
-      <button value="ときのそら" @click="loadModel('model/TokinoSora/ときのそら.pmx')">ときのそら</button>
+      <button value="ミライアカリ" @click="loadModel(Setting.model.model.MiraiAkari)">ミライアカリ</button>
+      <button value="ときのそら" @click="loadModel(Setting.model.model.TokinoSora)">ときのそら</button>
+      <button @click="toggleAnimation" :disabled="!hasLoadedModel">
+        {{ isPlaying ? '一時停止' : '再生' }}
+      </button>
     </div>
   </div>
 </template>
@@ -15,6 +18,7 @@
 import { onMounted, ref, watch } from 'vue'
 import * as THREE from "three";
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
+import { MMDAnimationHelper } from 'three/examples/jsm/animation/MMDAnimationHelper.js'
 import * as ThreeScenes from "./three/scenes";
 import Setting from "./three/Setting";
 import LoadingOverlay from './components/parts/LoadingOverlay';
@@ -26,14 +30,35 @@ let defaultCamera;
 let defaultLight;
 
 const MV = ref(null)
-const scene = ref(null)
 const render = ref(null)
 const camera = ref(null)
 const light = ref(null)
-const model = ref(null)
 const control = ref(null)
 const isloading = ref(false)
+const isPlaying = ref(true)
+const hasLoadedModel = ref(false)
 const loader = ThreeScenes.MMDloader
+const helper = new MMDAnimationHelper({ afterglow: 2.0 })
+const clock = new THREE.Clock()
+
+const removeCurrentModel = () => {
+  if (!defaultScene) {
+    return
+  }
+
+  const currentModel = defaultScene.getObjectByName("nowModel");
+  if (!currentModel) {
+    return
+  }
+
+  try {
+    helper.remove(currentModel);
+  } catch (error) {
+    console.warn('failed to remove model from helper');
+    console.warn(error);
+  }
+  defaultScene.remove(currentModel);
+}
 
 const animate = () => {
   if (!render.value || !camera.value || !control.value) {
@@ -47,6 +72,10 @@ const animate = () => {
   }
 
   requestAnimationFrame(animate);
+  const delta = clock.getDelta();
+  if (isPlaying.value) {
+    helper.update(delta);
+  }
   control.value.update();
   render.value.render(defaultScene, defaultCamera);
 }
@@ -66,15 +95,38 @@ const setLightColor = (lightColor) => {
   light.value = new THREE.DirectionalLight(lightColor, 1.0);
 }
 
+const toggleAnimation = () => {
+  if (!hasLoadedModel.value) {
+    return
+  }
+
+  isPlaying.value = !isPlaying.value;
+}
+
 const loadModel = (modelURL) => {
   isloading.value = true;
-  loader.load(
+  loader.loadWithAnimation(
     modelURL,
-    (obj) => {
-      defaultModel = obj;
+    Setting.model.motion.RucaRucaNightFever,
+    (mmd) => {
+      const mesh = mmd.mesh;
+      const animation = mmd.animation;
+
+      removeCurrentModel();
+
+      helper.add(mesh, {
+        animation: animation,
+        physics: false
+      });
+
+      defaultModel = mesh;
       defaultModel.name = "nowModel";
-      console.log('model loaded');
-      model.value = defaultModel;
+      defaultScene.add(defaultModel);
+      clock.getDelta();
+      isPlaying.value = true;
+      hasLoadedModel.value = true;
+      console.log('model and motion loaded');
+      isloading.value = false;
     },
     (xhr) => {
       console.log(Math.round(xhr.loaded / xhr.total * 100) + '% loaded');
@@ -83,23 +135,11 @@ const loadModel = (modelURL) => {
       console.group('error! reason:');
       console.log(error);
       console.groupEnd();
+      hasLoadedModel.value = false;
+      isloading.value = false;
     }
   )
 }
-
-watch(model, () => {
-  if (!defaultScene || !defaultModel) {
-    return
-  }
-
-  const deleteModel = defaultScene.getObjectByName("nowModel");
-  if (deleteModel) {
-    defaultScene.remove(deleteModel);
-  }
-  defaultScene.add(defaultModel);
-  model.value = defaultModel;
-  isloading.value = false;
-})
 
 watch(light, (newLight) => {
   if (!defaultScene || !newLight) {
@@ -116,7 +156,6 @@ onMounted(() => {
   defaultCamera = ThreeScenes.camera;
   defaultLight = ThreeScenes.light;
   defaultScene.add(defaultLight);
-  scene.value = defaultScene;
   camera.value = defaultCamera;
 
   if (!MV.value) {

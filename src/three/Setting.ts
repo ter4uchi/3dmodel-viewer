@@ -6,6 +6,9 @@ export default{
             MiraiAkari:"model/MiraiAkari/MiraiAkari_v1.0.pmx",
             TokinoSora:"model/TokinoSora/ときのそら.pmx"
         },
+        motion:{
+            RucaRucaNightFever:"danceMotion/RucaRucaNightFever.vmd"
+        },
         camera:{
             PerspectiveCamera:{
                 fov:70,
